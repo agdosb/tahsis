@@ -3,281 +3,599 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Parsel Tahsis ve İmar Planı Haritası</title>
+  <title>Ankara Anadolu Geri Dönüşümcüleri İhtisas OSB - Parsel Sorgulama Sistemi</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body, html {
       height: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0f172a;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      background: #eef2f6;
       color: #1e293b;
       overflow: hidden;
     }
 
-    /* Üst Bar */
-    header {
-      height: 60px;
-      background: #0f172a;
-      color: #f8fafc;
+    /* ÜST HEADER */
+    .top-header {
+      height: 68px;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
-      border-bottom: 1px solid #1e293b;
-      gap: 16px;
+      padding: 0 22px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+      position: relative;
+      z-index: 1000;
     }
-    .brand {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      white-space: nowrap;
-    }
-    .stats-bar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .stat-pill {
-      background: #1e293b;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
+
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 6px;
-      border: 1px solid #334155;
+      gap: 12px;
+      min-width: 240px;
     }
-    .stat-pill strong { color: #38bdf8; font-size: 13px; }
-    .stat-pill.green strong { color: #4ade80; }
-    .stat-pill.amber strong { color: #fbbf24; }
-
-    /* Ana Yerleşim */
-    .main-container {
+    .logo-box {
+      width: 46px;
+      height: 46px;
+      flex-shrink: 0;
       display: flex;
-      height: calc(100vh - 60px);
+      align-items: center;
+      justify-content: center;
+    }
+    .loc-info { line-height: 1.25; }
+    .loc-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.2px;
+    }
+    .loc-title span { font-weight: 500; color: #475569; }
+    .loc-sub {
+      font-size: 11.5px;
+      color: #64748b;
+    }
+
+    .header-center {
+      text-align: center;
+      flex: 1;
+      padding: 0 16px;
+    }
+    .header-center h1 {
+      font-size: 19px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.2px;
+    }
+    .header-center p {
+      font-size: 12.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 220px;
+      justify-content: flex-end;
+    }
+    .date-box {
+      text-align: right;
+      line-height: 1.25;
+    }
+    .date-main {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .date-sub {
+      font-size: 11px;
+      color: #64748b;
+    }
+    .btn-logout {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #1e293b;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-logout:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    /* ANA 3 SÜTUNLU YERLEŞİM */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 390px;
+      gap: 14px;
+      padding: 14px;
+      height: calc(100vh - 68px);
       width: 100%;
     }
 
-    /* Sol Panel (Filtre + Liste) */
-    .sidebar {
-      width: 400px;
-      min-width: 320px;
+    /* ORTAK KART STİLİ */
+    .card {
       background: #ffffff;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
       display: flex;
       flex-direction: column;
-      border-right: 1px solid #cbd5e1;
-      z-index: 500;
+      overflow: hidden;
     }
-    .filters {
-      padding: 12px;
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .filters input, .filters select {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
+    .card-header {
+      padding: 12px 14px;
+      text-align: center;
       font-size: 13px;
-      background: #fff;
-      color: #0f172a;
-    }
-    .filters input { grid-column: 1 / -1; }
-    .filters input:focus, .filters select:focus {
-      outline: none;
-      border-color: #2563eb;
+      font-weight: 800;
+      color: #1e3a8a;
+      letter-spacing: 0.4px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      flex-shrink: 0;
     }
 
-    .table-wrap {
+    /* SOL PANEL - FİLTRELER */
+    .filter-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+    .filter-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #1e3a8a;
+      margin-bottom: 5px;
+      letter-spacing: 0.3px;
+    }
+    .filter-group select,
+    .filter-group input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #1e293b;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus {
+      border-color: #2563eb;
+    }
+    .filter-footer {
+      padding: 12px 16px;
+      border-top: 1px solid #e2e8f0;
+      background: #ffffff;
+    }
+    .btn-clear {
+      width: 100%;
+      padding: 9px 12px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-clear:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    /* ORTA PANEL - HARİTA */
+    .map-card-body {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #cbd5e1;
+    }
+
+    /* HARİTA ETİKETLERİ (Fotoğraftaki gibi beyaz kutulu parsel etiketleri) */
+    .parcel-tag {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #94a3b8;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      white-space: nowrap;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      display: inline-block;
+    }
+    .parcel-tag.selected {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-color: #ffffff;
+    }
+    .road-tag {
+      background: transparent;
+      border: none;
+      color: #fde047;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .info-tag {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* SAĞ PANEL - SONUÇLAR VE TABLO */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .summary-cell {
+      padding: 13px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+    }
+    .summary-cell:nth-child(2n) { border-right: none; }
+    .summary-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .summary-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .summary-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-val .unit {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      margin-left: 2px;
+    }
+
+    /* DETAY TABLOSU KARTI */
+    .table-card {
+      flex: 1;
+      min-height: 0;
+    }
+    .table-scroll {
       flex: 1;
       overflow-y: auto;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 12.5px;
     }
     thead th {
       position: sticky;
       top: 0;
-      background: #1e293b;
-      color: #f8fafc;
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      font-size: 11.5px;
       text-align: left;
-      padding: 9px 10px;
-      font-weight: 600;
-      font-size: 12px;
+      padding: 10px 10px;
+      border-bottom: 1px solid #e2e8f0;
       z-index: 2;
     }
     tbody tr {
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid #f1f5f9;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.12s;
     }
-    tbody tr:hover { background: #eff6ff; }
-    tbody tr.active { background: #dbeafe; font-weight: 600; }
-    tbody td { padding: 9px 10px; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody tr.active { background: #eff6ff; }
+    tbody td {
+      padding: 10px 10px;
+      vertical-align: middle;
+      color: #1e293b;
+    }
 
-    .badge {
+    .parcel-pill {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
+      background: #eff6ff;
+      color: #1d4ed8;
       font-weight: 700;
-    }
-    .badge-bos { background: #dcfce7; color: #166534; }
-    .badge-dolu { background: #fef3c7; color: #92400e; }
-
-    .sidebar-footer {
-      padding: 8px 12px;
-      background: #f1f5f9;
-      border-top: 1px solid #e2e8f0;
       font-size: 12px;
-      color: #475569;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    /* Harita Alanı */
-    #map {
-      flex: 1;
-      height: 100%;
-      background: #0f172a;
-    }
-
-    /* Harita Etiketleri */
-    .map-label {
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      font-weight: 700;
-      text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid #dbeafe;
       white-space: nowrap;
-      pointer-events: none;
     }
-    .lbl-tahsis { color: #fde047; font-size: 13px; }
-    .lbl-ada { color: #ffffff; font-size: 11px; }
-    .lbl-cadde { color: #38bdf8; font-size: 11px; }
-    .lbl-yapi { color: #fca5a5; font-size: 10px; }
-
-    /* Popup */
-    .popup-title {
-      font-size: 14px;
+    .status-sub {
+      display: block;
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .status-bos { color: #15803d; font-weight: 700; }
+    .status-dolu { color: #b45309; font-weight: 700; }
+    .area-cell {
+      text-align: right;
       font-weight: 700;
       color: #0f172a;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* POPUP */
+    .popup-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #1e3a8a;
       border-bottom: 1px solid #e2e8f0;
-      padding-bottom: 4px;
+      padding-bottom: 5px;
       margin-bottom: 6px;
     }
     .popup-row { font-size: 12px; margin: 3px 0; color: #334155; }
     .popup-row b { color: #0f172a; }
 
-    /* Mobil Uyum */
-    @media (max-width: 820px) {
-      header { height: auto; padding: 10px 14px; flex-direction: column; align-items: flex-start; }
-      .main-container { flex-direction: column-reverse; height: calc(100vh - 90px); }
-      .sidebar { width: 100%; height: 45%; min-width: auto; border-right: none; border-top: 2px solid #cbd5e1; }
-      #map { height: 55%; }
+    /* SCROLLBAR İNCELTME */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* MOBİL & TABLET UYUM */
+    @media (max-width: 1100px) {
+      body, html { overflow: auto; }
+      .top-header { height: auto; flex-wrap: wrap; padding: 12px 16px; gap: 10px; }
+      .header-center { order: 3; width: 100%; padding: 4px 0 0; }
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .map-card-body { height: 460px; }
+      .table-card { max-height: 450px; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">İmar Planı &amp; Parsel Tahsis Haritası</div>
-  <div class="stats-bar">
-    <div class="stat-pill">Parsel: <strong id="stCount">-</strong></div>
-    <div class="stat-pill">Toplam Alan: <strong id="stArea">-</strong></div>
-    <div class="stat-pill green">Boş: <strong id="stBos">-</strong></div>
-    <div class="stat-pill amber">Tahsisli: <strong id="stDolu">-</strong></div>
+<!-- ÜST HEADER -->
+<header class="top-header">
+  <div class="header-left">
+    <div class="logo-box" title="AGD OSB">
+      <!-- AGD SVG Logo -->
+      <svg viewBox="0 0 100 100" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" fill="#ecfdf5" stroke="#16a34a" stroke-width="5"/>
+        <path d="M50 12 A38 38 0 0 1 85 36" fill="none" stroke="#15803d" stroke-width="7" stroke-linecap="round"/>
+        <path d="M84 65 A38 38 0 0 1 45 88" fill="none" stroke="#22c55e" stroke-width="7" stroke-linecap="round"/>
+        <path d="M18 68 A38 38 0 0 1 25 22" fill="none" stroke="#4ade80" stroke-width="7" stroke-linecap="round"/>
+        <text x="50" y="57" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="23" font-weight="900" fill="#1e3a8a">AGD</text>
+      </svg>
+    </div>
+    <div class="loc-info">
+      <div class="loc-title">ANKARA <span>/ TÜRKİYE</span></div>
+      <div class="loc-sub">Sincan / Yeni Cimşit</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <h1>Ankara Anadolu Geri Dönüşümcüleri İhtisas Organize Sanayi Bölgesi</h1>
+    <p>Parsel Tahsis ve İmar Planı Sorgulama Sistemi</p>
+  </div>
+
+  <div class="header-right">
+    <div class="date-box">
+      <div class="date-main" id="dateShort">-- ---</div>
+      <div class="date-sub" id="dateFull">----</div>
+    </div>
+    <button class="btn-logout" onclick="resetAll()" title="Filtreleri ve görünümü sıfırla">Yenile</button>
   </div>
 </header>
 
-<div class="main-container">
-  <aside class="sidebar">
-    <div class="filters">
-      <input type="text" id="searchInput" placeholder="Parsel no veya tahsis sahibi ara..." />
-      <select id="typeFilter">
-        <option value="">Tüm Tipler</option>
-      </select>
-      <select id="statusFilter">
-        <option value="">Tüm Durumlar</option>
-        <option value="BOS">Boş Parseller</option>
-        <option value="DOLU">Tahsisli Parseller</option>
-      </select>
+<!-- 3 SÜTUNLU ANA İÇERİK -->
+<main class="dashboard-grid">
+
+  <!-- 1. SOL SÜTUN: FİLTRELER VE SORGULAR -->
+  <section class="card">
+    <div class="card-header">FİLTRELER VE SORGULAR</div>
+    <div class="filter-body">
+      <div class="filter-group">
+        <label for="fIl">İL</label>
+        <select id="fIl">
+          <option value="ANKARA">Ankara</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fIlce">İLÇE</label>
+        <select id="fIlce">
+          <option value="SİNCAN">Sincan</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fParsel">TAHSİS PARSEL NO</label>
+        <select id="fParsel">
+          <option value="">Tümü</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fTip">PARSEL TİPİ</label>
+        <select id="fTip">
+          <option value="">Tümü</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fDurum">TAHSİS DURUMU</label>
+        <select id="fDurum">
+          <option value="">Tümü</option>
+          <option value="BOS">Boş Parseller</option>
+          <option value="DOLU">Tahsisli Parseller</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fSahip">TAHSİS SAHİBİ</label>
+        <select id="fSahip">
+          <option value="">Tümü</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="fSearch">HIZLI ARAMA</label>
+        <input type="text" id="fSearch" placeholder="Parsel no veya firma ara..." />
+      </div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Parsel</th>
-            <th>Tipi</th>
-            <th style="text-align:right;">Alan (m²)</th>
-            <th>Tahsis Sahibi</th>
-          </tr>
-        </thead>
-        <tbody id="parcelTableBody">
-          <tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">Veriler yükleniyor...</td></tr>
-        </tbody>
-      </table>
+    <div class="filter-footer">
+      <button class="btn-clear" id="btnClear">FİLTRELERİ TEMİZLE</button>
     </div>
+  </section>
 
-    <div class="sidebar-footer">
-      <span id="filterInfo">0 kayıt</span>
-      <span>Seçili Alan: <b id="filteredArea">0 m²</b></span>
+  <!-- 2. ORTA SÜTUN: PARSEL HARİTASI (GOOGLE UYDU) -->
+  <section class="card">
+    <div class="card-header">PARSEL HARİTASI (GOOGLE UYDU)</div>
+    <div class="map-card-body">
+      <div id="map"></div>
     </div>
+  </section>
+
+  <!-- 3. SAĞ SÜTUN: SORGU SONUÇLARI & DETAYLAR -->
+  <aside class="right-col">
+    <!-- Üst Özet Kartı -->
+    <section class="card">
+      <div class="card-header">SORGU SONUÇLARI</div>
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="summary-label">PARSEL ADEDİ</div>
+          <div class="summary-val" id="sumCount">0</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">TOPLAM ALAN</div>
+          <div class="summary-val"><span id="sumArea">0,00</span><span class="unit">m²</span></div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">BOŞ PARSEL</div>
+          <div class="summary-val" id="sumBos">0</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">TAHSİSLİ PARSEL</div>
+          <div class="summary-val" id="sumDolu">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alt Tablo Kartı -->
+    <section class="card table-card">
+      <div class="card-header">PARSEL VE TAHSİS DETAYLARI</div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Parsel</th>
+              <th>Tipi</th>
+              <th>Tahsis Bilgisi</th>
+              <th style="text-align:right;">Alan (m²)</th>
+            </tr>
+          </thead>
+          <tbody id="detailTableBody">
+            <tr><td colspan="4" style="text-align:center; padding:24px; color:#64748b;">Veriler yükleniyor...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </aside>
 
-  <div id="map"></div>
-</div>
+</main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  // 1. Harita ve Uydu Altlıkları
-  const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-    maxZoom: 21, attribution: 'Google Uydu'
-  });
+  // CANLI TÜRKÇE TARİH
+  (function setToday() {
+    const now = new Date();
+    const monthsShort = ["OCA", "ŞUB", "MAR", "NİS", "MAY", "HAZ", "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA"];
+    const daysTR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    document.getElementById('dateShort').textContent = `${now.getDate()} ${monthsShort[now.getMonth()]}`;
+    document.getElementById('dateFull').textContent = `${yyyy}-${mm}-${dd} - ${daysTR[now.getDay()]}`;
+  })();
+
+  // HARİTA ALTLIKLARI (Varsayılan: Google Hibrit - Uydu + Yer İsimleri)
   const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-    maxZoom: 21, attribution: 'Google Hibrit'
+    maxZoom: 21, attribution: '© Google Earth / Maps'
+  });
+  const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    maxZoom: 21, attribution: '© Google Earth / Maps'
   });
   const googleStreets = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-    maxZoom: 21, attribution: 'Google Harita'
+    maxZoom: 21, attribution: '© Google Maps'
   });
 
   const map = L.map('map', {
     center: [39.945, 32.511],
     zoom: 16,
-    layers: [googleSat]
+    layers: [googleHybrid]
   });
 
   const baseMaps = {
-    "Google Earth (Uydu)": googleSat,
-    "Google Hibrit": googleHybrid,
+    "Google Uydu (Hibrit)": googleHybrid,
+    "Google Uydu (Sade)": googleSat,
     "Google Yol Haritası": googleStreets
   };
   const layerControl = L.control.layers(baseMaps, {}, { collapsed: true }).addTo(map);
 
-  // Durum değişkenleri
+  // VERİ DEĞİŞKENLERİ
   let allParcels = [];
-  let parcelMap = {};         // { "A1": { no, tipi, alaniNum, alaniStr, sahibi, durumu, isBos } }
-  let polygonLayers = {};     // { "A1": LeafletLayer }
-  let labelCoords = {};       // { "A1": [lat, lng] }
+  let parcelMap = {};
+  let polygonLayers = {};
+  let labelMarkers = {};
+  let labelCoords = {};
+  let fullBounds = L.latLngBounds();
   let selectedParcelNo = null;
 
-  // Yardımcı: Sayısal alan parse (örn: "5,000.10" -> 5000.10)
   function parseArea(str) {
     if (!str) return 0;
     const clean = str.trim().replace(/\s/g, '');
-    if (clean.includes(',') && clean.includes('.')) {
-      return parseFloat(clean.replace(/,/g, '')) || 0;
-    }
-    if (clean.includes(',') && !clean.includes('.')) {
-      return parseFloat(clean.replace(',', '.')) || 0;
-    }
+    if (clean.includes(',') && clean.includes('.')) return parseFloat(clean.replace(/,/g, '')) || 0;
+    if (clean.includes(',') && !clean.includes('.')) return parseFloat(clean.replace(',', '.')) || 0;
     return parseFloat(clean) || 0;
   }
 
@@ -285,7 +603,6 @@
     return num.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // Yardımcı: Point-in-Polygon (Ray Casting)
   function pointInPolygon(pt, ring) {
     const x = pt[0], y = pt[1];
     let inside = false;
@@ -298,10 +615,10 @@
     return inside;
   }
 
-  // Yardımcı: CSV Okuyucu (ANSI Windows-1254 ve UTF-8 uyumlu)
+  // CSV YÜKLEME (UTF-8 ve ANSI Windows-1254 uyumlu)
   async function loadCSV(url) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error("CSV dosyası yüklenemedi: " + url);
+    if (!res.ok) throw new Error("CSV dosyası bulunamadı: " + url);
     const buf = await res.arrayBuffer();
 
     let text = new TextDecoder('utf-8').decode(buf);
@@ -341,46 +658,47 @@
     return rows;
   }
 
-  // Stil fonksiyonu (Parsel poligonları için)
-  function getParcelStyle(no, isHighlighted = false, isDimmed = false) {
+  // PARSEL POLİGON STİLİ (Fotoğraftaki gibi net kırmızı/mercan veya duruma göre renk)
+  function getParcelStyle(no, isSelected = false, isDimmed = false) {
     const rec = parcelMap[no];
-    let fillColor = '#64748b';
-    let color = '#cbd5e1';
+    // Fotoğraftaki estetik: yarı saydam kırmızımsı/mercan vurgulu parseller; tahsisli olanlar mavi/amber ayrışsın
+    let fillColor = '#ef4444';
+    let color = '#dc2626';
 
-    if (rec) {
-      fillColor = rec.isBos ? '#22c55e' : '#f59e0b';
-      color = rec.isBos ? '#4ade80' : '#fbbf24';
+    if (rec && !rec.isBos) {
+      fillColor = '#2563eb';
+      color = '#1d4ed8';
+    } else if (!rec) {
+      fillColor = '#64748b';
+      color = '#94a3b8';
     }
-    if (isHighlighted) {
-      return { color: '#38bdf8', weight: 3.5, fillColor, fillOpacity: 0.65, dashArray: null };
+
+    if (isSelected) {
+      return { color: '#facc15', weight: 3.5, fillColor, fillOpacity: 0.62 };
     }
     if (isDimmed) {
-      return { color: '#475569', weight: 1, fillColor: '#334155', fillOpacity: 0.12, dashArray: '4,4' };
+      return { color: '#94a3b8', weight: 1, fillColor: '#475569', fillOpacity: 0.12 };
     }
-    return { color, weight: 2, fillColor, fillOpacity: 0.35, dashArray: '5,4' };
+    return { color, weight: 2, fillColor, fillOpacity: 0.38 };
   }
 
   function buildPopupHTML(no) {
     const rec = parcelMap[no];
     if (!rec) {
-      return `<div class="popup-title">Parsel: ${no}</div><div class="popup-row">CSV listesinde kayıt bulunamadı.</div>`;
+      return `<div class="popup-title">Parsel ${no}</div><div class="popup-row">CSV tahsis listesinde kayıt bulunamadı.</div>`;
     }
-    const badge = rec.isBos
-      ? `<span class="badge badge-bos">BOŞ</span>`
-      : `<span class="badge badge-dolu">${rec.sahibi}</span>`;
     return `
-      <div class="popup-title">Parsel ${rec.no} &nbsp; ${badge}</div>
-      <div class="popup-row"><b>Tipi:</b> ${rec.tipi}</div>
-      <div class="popup-row"><b>Alanı:</b> ${rec.alaniStr} m²</div>
+      <div class="popup-title">Parsel ${rec.no} (${rec.tipi} Tipi)</div>
+      <div class="popup-row"><b>Alan:</b> ${rec.alaniStr} m²</div>
       <div class="popup-row"><b>Tahsis Sahibi:</b> ${rec.sahibi}</div>
-      <div class="popup-row"><b>Tahsis Durumu:</b> ${rec.durumu}</div>
+      <div class="popup-row"><b>Durum:</b> ${rec.durumu}</div>
     `;
   }
 
-  // Harita + GeoJSON Yükleme
+  // GEOJSON YÜKLEME
   async function loadGeoJSON(url) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error("GeoJSON dosyası yüklenemedi: " + url);
+    if (!res.ok) throw new Error("GeoJSON dosyası bulunamadı: " + url);
     const data = await res.json();
 
     const tahsisPoints = [];
@@ -394,14 +712,8 @@
     });
 
     const groups = {
-      parselPoligon: [],
-      adaKenari: [],
-      parselSiniri: [],
-      kaldirim: [],
-      etiketTahsis: [],
-      etiketAda: [],
-      etiketCadde: [],
-      etiketYapi: []
+      poligon: [], ada: [], parsel: [], kaldirim: [],
+      lblTahsis: [], lblCadde: [], lblAda: [], lblYapi: []
     };
 
     data.features.forEach(f => {
@@ -410,27 +722,18 @@
         const ring = f.geometry.coordinates[0];
         const match = tahsisPoints.find(p => pointInPolygon(p.coords, ring));
         f.properties.parcelNo = match ? match.no : '';
-        groups.parselPoligon.push(f);
-      } else if (lyr === 'A_ADAKENARI') {
-        groups.adaKenari.push(f);
-      } else if (lyr === 'A_PARSELSINIRI') {
-        groups.parselSiniri.push(f);
-      } else if (lyr === 'A_KALDIRIM') {
-        groups.kaldirim.push(f);
-      } else if (lyr.includes('TAHS') && f.geometry.type === 'Point') {
-        groups.etiketTahsis.push(f);
-      } else if (lyr === 'ADA_PARSEL_NO' && f.geometry.type === 'Point') {
-        groups.etiketAda.push(f);
-      } else if (lyr === 'CADDE_SOKAK' && f.geometry.type === 'Point') {
-        groups.etiketCadde.push(f);
-      } else if (lyr === 'SM_YAPILASMA' && f.geometry.type === 'Point') {
-        groups.etiketYapi.push(f);
-      }
+        groups.poligon.push(f);
+      } else if (lyr === 'A_ADAKENARI') groups.ada.push(f);
+      else if (lyr === 'A_PARSELSINIRI') groups.parsel.push(f);
+      else if (lyr === 'A_KALDIRIM') groups.kaldirim.push(f);
+      else if (lyr.includes('TAHS') && f.geometry.type === 'Point') groups.lblTahsis.push(f);
+      else if (lyr === 'CADDE_SOKAK' && f.geometry.type === 'Point') groups.lblCadde.push(f);
+      else if (lyr === 'ADA_PARSEL_NO' && f.geometry.type === 'Point') groups.lblAda.push(f);
+      else if (lyr === 'SM_YAPILASMA' && f.geometry.type === 'Point') groups.lblYapi.push(f);
     });
 
-    const allBounds = L.latLngBounds();
-
-    const polyGroup = L.geoJSON({ type: 'FeatureCollection', features: groups.parselPoligon }, {
+    // Parsel poligonları
+    const polyGroup = L.geoJSON({ type: 'FeatureCollection', features: groups.poligon }, {
       style: (f) => getParcelStyle(f.properties.parcelNo),
       onEachFeature: (f, layer) => {
         const no = f.properties.parcelNo;
@@ -441,76 +744,89 @@
         }
       }
     }).addTo(map);
-    if (polyGroup.getBounds().isValid()) allBounds.extend(polyGroup.getBounds());
+    if (polyGroup.getBounds().isValid()) fullBounds.extend(polyGroup.getBounds());
     layerControl.addOverlay(polyGroup, "Tahsis Parselleri");
 
-    const adaLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.adaKenari }, {
-      style: { color: '#f97316', weight: 2.8, opacity: 1 }, interactive: false
+    // İmar Çizgileri
+    const adaLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.ada }, {
+      style: { color: '#ef4444', weight: 2.2, opacity: 0.95 }, interactive: false
     }).addTo(map);
     layerControl.addOverlay(adaLayer, "Ada Kenarı");
 
-    const parselLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.parselSiniri }, {
-      style: { color: '#ef4444', weight: 1.8, opacity: 0.9 }, interactive: false
+    const parselLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.parsel }, {
+      style: { color: '#f87171', weight: 1.5, opacity: 0.85 }, interactive: false
     }).addTo(map);
     layerControl.addOverlay(parselLayer, "Parsel Sınırı");
 
     const kaldirimLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.kaldirim }, {
-      style: { color: '#cbd5e1', weight: 1, opacity: 0.7 }, interactive: false
-    }).addTo(map);
+      style: { color: '#e2e8f0', weight: 1, opacity: 0.65 }, interactive: false
+    });
     layerControl.addOverlay(kaldirimLayer, "Kaldırım");
 
-    const makeLabels = (features, cls) => L.geoJSON({ type: 'FeatureCollection', features }, {
+    // Beyaz kutulu parsel etiketleri
+    const tahsisLabelLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.lblTahsis }, {
       pointToLayer: (f, latlng) => {
-        let txt = (f.properties.text || '').replace('YenÃ§ok', 'Yençok');
+        const no = (f.properties.text || '').trim().toUpperCase();
+        const marker = L.marker(latlng, {
+          interactive: false,
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="parcel-tag" id="tag-${no}">${no}</div>`,
+            iconSize: [0, 0]
+          })
+        });
+        labelMarkers[no] = marker;
+        return marker;
+      }
+    }).addTo(map);
+    layerControl.addOverlay(tahsisLabelLayer, "Parsel Etiketleri");
+
+    const caddeLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.lblCadde }, {
+      pointToLayer: (f, latlng) => L.marker(latlng, {
+        interactive: false,
+        icon: L.divIcon({ className: 'road-tag', html: f.properties.text || '', iconSize: [0, 0] })
+      })
+    }).addTo(map);
+    layerControl.addOverlay(caddeLayer, "Cadde / Sokak");
+
+    const adaNoLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.lblAda }, {
+      pointToLayer: (f, latlng) => L.marker(latlng, {
+        interactive: false,
+        icon: L.divIcon({ className: 'info-tag', html: f.properties.text || '', iconSize: [0, 0] })
+      })
+    });
+    layerControl.addOverlay(adaNoLayer, "Ada / Parsel No");
+
+    const yapiLayer = L.geoJSON({ type: 'FeatureCollection', features: groups.lblYapi }, {
+      pointToLayer: (f, latlng) => {
+        const txt = (f.properties.text || '').replace('YenÃ§ok', 'Yençok');
         return L.marker(latlng, {
           interactive: false,
-          icon: L.divIcon({ className: `map-label ${cls}`, html: txt, iconSize: [0, 0] })
+          icon: L.divIcon({ className: 'info-tag', html: txt, iconSize: [0, 0] })
         });
       }
     });
+    layerControl.addOverlay(yapiLayer, "Yapılaşma Koşulları");
 
-    const lblTahsis = makeLabels(groups.etiketTahsis, 'lbl-tahsis').addTo(map);
-    const lblCadde = makeLabels(groups.etiketCadde, 'lbl-cadde').addTo(map);
-    const lblAda = makeLabels(groups.etiketAda, 'lbl-ada');
-    const lblYapi = makeLabels(groups.etiketYapi, 'lbl-yapi');
-
-    layerControl.addOverlay(lblTahsis, "Tahsis Parsel No");
-    layerControl.addOverlay(lblCadde, "Cadde / Sokak");
-    layerControl.addOverlay(lblAda, "Ada / Parsel No");
-    layerControl.addOverlay(lblYapi, "Yapılaşma Koşulları");
-
-    if (allBounds.isValid()) {
-      map.fitBounds(allBounds, { padding: [25, 25] });
+    if (fullBounds.isValid()) {
+      map.fitBounds(fullBounds, { padding: [25, 25] });
     }
   }
 
-  function selectParcel(no, zoomTo = true) {
-    selectedParcelNo = no;
-
-    document.querySelectorAll('#parcelTableBody tr').forEach(tr => {
-      tr.classList.toggle('active', tr.dataset.no === no);
-    });
-
-    applyMapStyles();
-
-    const layer = polygonLayers[no];
-    if (layer) {
-      if (zoomTo) map.fitBounds(layer.getBounds(), { maxZoom: 18, padding: [40, 40] });
-      layer.openPopup();
-    } else if (zoomTo && labelCoords[no]) {
-      map.setView(labelCoords[no], 18);
-    }
-  }
-
+  // FİLTRELEME
   function getFilteredParcels() {
-    const q = document.getElementById('searchInput').value.trim().toUpperCase();
-    const t = document.getElementById('typeFilter').value;
-    const s = document.getElementById('statusFilter').value;
+    const pNo = document.getElementById('fParsel').value;
+    const tip = document.getElementById('fTip').value;
+    const durum = document.getElementById('fDurum').value;
+    const sahip = document.getElementById('fSahip').value;
+    const q = document.getElementById('fSearch').value.trim().toUpperCase();
 
     return allParcels.filter(p => {
-      if (t && p.tipi !== t) return false;
-      if (s === 'BOS' && !p.isBos) return false;
-      if (s === 'DOLU' && p.isBos) return false;
+      if (pNo && p.no !== pNo) return false;
+      if (tip && p.tipi !== tip) return false;
+      if (durum === 'BOS' && !p.isBos) return false;
+      if (durum === 'DOLU' && p.isBos) return false;
+      if (sahip && p.sahibi !== sahip) return false;
       if (q && !p.no.includes(q) && !p.sahibi.toUpperCase().includes(q) && !p.durumu.toUpperCase().includes(q)) {
         return false;
       }
@@ -518,28 +834,46 @@
     });
   }
 
-  function applyMapStyles() {
-    const visibleSet = new Set(getFilteredParcels().map(p => p.no));
+  function updateMapVisuals(filtered) {
+    const visibleSet = new Set(filtered.map(p => p.no));
     Object.keys(polygonLayers).forEach(no => {
       const isSelected = no === selectedParcelNo;
       const isDimmed = !visibleSet.has(no) && parcelMap[no];
       polygonLayers[no].setStyle(getParcelStyle(no, isSelected, isDimmed));
     });
+
+    document.querySelectorAll('.parcel-tag').forEach(el => {
+      el.classList.toggle('selected', el.id === `tag-${selectedParcelNo}`);
+    });
   }
 
-  function renderTable() {
+  function renderUI(zoomToFiltered = false) {
     const filtered = getFilteredParcels();
-    const tbody = document.getElementById('parcelTableBody');
 
+    // Sağ Üst Özet Kartı (Sorgu Sonuçları)
+    const totalArea = filtered.reduce((sum, p) => sum + p.alaniNum, 0);
+    const bosCount = filtered.filter(p => p.isBos).length;
+    const doluCount = filtered.length - bosCount;
+
+    document.getElementById('sumCount').textContent = filtered.length;
+    document.getElementById('sumArea').textContent = formatArea(totalArea);
+    document.getElementById('sumBos').textContent = bosCount;
+    document.getElementById('sumDolu').textContent = doluCount;
+
+    // Sağ Alt Detay Tablosu
+    const tbody = document.getElementById('detailTableBody');
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">Kayıt bulunamadı.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:#64748b;">Eşleşen parsel bulunamadı.</td></tr>`;
     } else {
       tbody.innerHTML = filtered.map(p => `
         <tr data-no="${p.no}" class="${p.no === selectedParcelNo ? 'active' : ''}">
-          <td><b>${p.no}</b></td>
-          <td>${p.tipi}</td>
-          <td style="text-align:right; font-variant-numeric: tabular-nums;">${p.alaniStr}</td>
-          <td><span class="badge ${p.isBos ? 'badge-bos' : 'badge-dolu'}">${p.sahibi}</span></td>
+          <td><span class="parcel-pill">${p.no}</span></td>
+          <td><b>${p.tipi}</b></td>
+          <td>
+            <span class="${p.isBos ? 'status-bos' : 'status-dolu'}">${p.sahibi}</span>
+            <span class="status-sub">${p.durumu}</span>
+          </td>
+          <td class="area-cell">${p.alaniStr}</td>
         </tr>
       `).join('');
 
@@ -548,44 +882,88 @@
       });
     }
 
-    const totalArea = filtered.reduce((sum, p) => sum + p.alaniNum, 0);
-    document.getElementById('filterInfo').textContent = `${filtered.length} parsel listeleniyor`;
-    document.getElementById('filteredArea').textContent = `${formatArea(totalArea)} m²`;
+    updateMapVisuals(filtered);
 
-    applyMapStyles();
+    if (zoomToFiltered && filtered.length > 0) {
+      const b = L.latLngBounds();
+      filtered.forEach(p => {
+        if (polygonLayers[p.no]) b.extend(polygonLayers[p.no].getBounds());
+      });
+      if (b.isValid()) map.fitBounds(b, { maxZoom: 18, padding: [35, 35] });
+    }
   }
 
+  function selectParcel(no, zoomTo = true) {
+    selectedParcelNo = no;
+    document.querySelectorAll('#detailTableBody tr').forEach(tr => {
+      tr.classList.toggle('active', tr.dataset.no === no);
+    });
+    updateMapVisuals(getFilteredParcels());
+
+    const layer = polygonLayers[no];
+    if (layer) {
+      if (zoomTo) map.fitBounds(layer.getBounds(), { maxZoom: 18, padding: [45, 45] });
+      layer.openPopup();
+    } else if (zoomTo && labelCoords[no]) {
+      map.setView(labelCoords[no], 18);
+    }
+  }
+
+  function resetAll() {
+    document.getElementById('fParsel').value = '';
+    document.getElementById('fTip').value = '';
+    document.getElementById('fDurum').value = '';
+    document.getElementById('fSahip').value = '';
+    document.getElementById('fSearch').value = '';
+    selectedParcelNo = null;
+    map.closePopup();
+    renderUI(false);
+    if (fullBounds.isValid()) map.fitBounds(fullBounds, { padding: [25, 25] });
+  }
+
+  // BAŞLATMA
   async function init() {
     try {
       allParcels = await loadCSV('tahsis_sozlesmesi.csv');
 
-      const totalArea = allParcels.reduce((s, p) => s + p.alaniNum, 0);
-      const bosCount = allParcels.filter(p => p.isBos).length;
-      const doluCount = allParcels.length - bosCount;
+      // Filtre seçeneklerini doldur
+      const selParsel = document.getElementById('fParsel');
+      allParcels.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.no;
+        opt.textContent = p.no;
+        selParsel.appendChild(opt);
+      });
 
-      document.getElementById('stCount').textContent = allParcels.length;
-      document.getElementById('stArea').textContent = `${formatArea(totalArea)} m²`;
-      document.getElementById('stBos').textContent = bosCount;
-      document.getElementById('stDolu').textContent = doluCount;
-
-      const types = [...new Set(allParcels.map(p => p.tipi).filter(Boolean))].sort();
-      const typeSel = document.getElementById('typeFilter');
-      types.forEach(t => {
+      const selTip = document.getElementById('fTip');
+      [...new Set(allParcels.map(p => p.tipi).filter(Boolean))].sort().forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
         opt.textContent = `${t} Tipi`;
-        typeSel.appendChild(opt);
+        selTip.appendChild(opt);
+      });
+
+      const selSahip = document.getElementById('fSahip');
+      [...new Set(allParcels.map(p => p.sahibi).filter(Boolean))].sort().forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        selSahip.appendChild(opt);
       });
 
       await loadGeoJSON('imar_plani.geojson');
-      renderTable();
+      renderUI(false);
 
-      document.getElementById('searchInput').addEventListener('input', renderTable);
-      document.getElementById('typeFilter').addEventListener('change', renderTable);
-      document.getElementById('statusFilter').addEventListener('change', renderTable);
+      // Olay dinleyicileri
+      ['fParsel', 'fTip', 'fDurum', 'fSahip'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => renderUI(true));
+      });
+      document.getElementById('fSearch').addEventListener('input', () => renderUI(false));
+      document.getElementById('btnClear').addEventListener('click', resetAll);
+
     } catch (err) {
-      document.getElementById('parcelTableBody').innerHTML =
-        `<tr><td colspan="4" style="color:#dc2626; padding:16px;">Hata: ${err.message}<br><small>Dosyaların aynı klasörde ve bir sunucu (GitHub Pages / Live Server) üzerinden açıldığından emin olun.</small></td></tr>`;
+      document.getElementById('detailTableBody').innerHTML =
+        `<tr><td colspan="4" style="color:#dc2626; padding:18px;">Hata: ${err.message}<br><small>index.html, imar_plani.geojson ve tahsis_sozlesmesi.csv dosyalarının aynı klasörde olduğundan emin olun.</small></td></tr>`;
     }
   }
 
