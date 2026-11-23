@@ -359,6 +359,43 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* HARİTA LEJANTI */
+    .map-legend {
+      background: rgba(255, 255, 255, 0.94);
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+      font-size: 11.5px;
+      color: #1e293b;
+      line-height: 1.4;
+      min-width: 145px;
+    }
+    .legend-title {
+      font-weight: 800;
+      font-size: 11px;
+      color: #1e3a8a;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 4px 0;
+      font-weight: 600;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1.5px solid rgba(0,0,0,0.35);
+      flex-shrink: 0;
+    }
+
     /* POPUP */
     .popup-title {
       font-size: 13.5px;
@@ -464,7 +501,8 @@
       <div class="filter-group">
         <label for="fDurum">TAHSİS DURUMU</label>
         <select id="fDurum">
-          <option value="">Tümü</option>
+          <option value="">Tümü (Parsel Tipine Göre)</option>
+          <option value="DURUM_ALL">Tümü (Boş / Tahsisli Renkli)</option>
           <option value="BOS">Boş Parseller</option>
           <option value="DOLU">Tahsisli Parseller</option>
         </select>
@@ -658,28 +696,88 @@
     return rows;
   }
 
-  // PARSEL POLİGON STİLİ (Fotoğraftaki gibi net kırmızı/mercan veya duruma göre renk)
+  // PARSEL TİPİ RENK PALETİ
+  const TYPE_PALETTE = {
+    'A': { fill: '#3b82f6', stroke: '#1d4ed8', label: 'A Tipi' },   // Mavi
+    'C': { fill: '#10b981', stroke: '#047857', label: 'C Tipi' },   // Zümrüt Yeşili
+    'D': { fill: '#f59e0b', stroke: '#b45309', label: 'D Tipi' },   // Kehribar / Turuncu
+    'E': { fill: '#a855f7', stroke: '#7e22ce', label: 'E Tipi' },   // Mor
+    'F': { fill: '#06b6d4', stroke: '#0e7490', label: 'F Tipi' },   // Turkuaz
+    'B': { fill: '#ec4899', stroke: '#be185d', label: 'B Tipi' }    // Pembe
+  };
+  const FALLBACK_COLORS = [
+    { fill: '#6366f1', stroke: '#4338ca' },
+    { fill: '#84cc16', stroke: '#4d7c0f' },
+    { fill: '#f97316', stroke: '#c2410c' }
+  ];
+
+  function getTypeColor(tipi) {
+    if (!tipi) return { fill: '#64748b', stroke: '#475569', label: 'Tanımsız' };
+    if (TYPE_PALETTE[tipi]) return TYPE_PALETTE[tipi];
+    const idx = tipi.charCodeAt(0) % FALLBACK_COLORS.length;
+    return { ...FALLBACK_COLORS[idx], label: `${tipi} Tipi` };
+  }
+
+  // HARİTA LEJANTI KONTROLÜ
+  const legendControl = L.control({ position: 'bottomleft' });
+  legendControl.onAdd = function() {
+    const div = L.DomUtil.create('div', 'map-legend');
+    div.id = 'mapLegend';
+    return div;
+  };
+  legendControl.addTo(map);
+
+  function updateLegend() {
+    const el = document.getElementById('mapLegend');
+    if (!el) return;
+    const durum = document.getElementById('fDurum').value;
+
+    if (durum !== '') {
+      el.innerHTML = `
+        <div class="legend-title">Tahsis Durumu</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#22c55e; border-color:#15803d;"></span>Boş Parsel</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:#ef4444; border-color:#b91c1c;"></span>Tahsisli (Dolu)</div>
+      `;
+    } else {
+      const types = [...new Set(allParcels.map(p => p.tipi).filter(Boolean))].sort();
+      const itemsHTML = types.map(t => {
+        const c = getTypeColor(t);
+        return `<div class="legend-item"><span class="legend-swatch" style="background:${c.fill}; border-color:${c.stroke};"></span>${t} Tipi</div>`;
+      }).join('');
+      el.innerHTML = `
+        <div class="legend-title">Parsel Tipleri</div>
+        ${itemsHTML}
+      `;
+    }
+  }
+
+  // PARSEL POLİGON STİLİ
   function getParcelStyle(no, isSelected = false, isDimmed = false) {
     const rec = parcelMap[no];
-    // Fotoğraftaki estetik: yarı saydam kırmızımsı/mercan vurgulu parseller; tahsisli olanlar mavi/amber ayrışsın
-    let fillColor = '#ef4444';
-    let color = '#dc2626';
+    const durumFilter = document.getElementById('fDurum').value;
+    let fillColor = '#64748b';
+    let color = '#94a3b8';
 
-    if (rec && !rec.isBos) {
-      fillColor = '#2563eb';
-      color = '#1d4ed8';
-    } else if (!rec) {
-      fillColor = '#64748b';
-      color = '#94a3b8';
+    if (rec) {
+      if (durumFilter !== '') {
+        // Tahsis durumuna göre filtreleme yapıldığında 2 renk (Boş: Yeşil, Tahsisli/Dolu: Kırmızı)
+        fillColor = rec.isBos ? '#22c55e' : '#ef4444';
+        color = rec.isBos ? '#16a34a' : '#dc2626';
+      } else {
+        // Genel görünümde parsel tipine göre ayrı renkler
+        const tc = getTypeColor(rec.tipi);
+        fillColor = tc.fill;
+        color = tc.stroke;
+      }
     }
 
     if (isSelected) {
-      return { color: '#facc15', weight: 3.5, fillColor, fillOpacity: 0.62 };
+      return { color: '#facc15', weight: 3.5, fillColor, fillOpacity: 0.72 };
     }
     if (isDimmed) {
-      return { color: '#94a3b8', weight: 1, fillColor: '#475569', fillOpacity: 0.12 };
+      return { color, weight: 1, fillColor, fillOpacity: 0.12 };
     }
-    return { color, weight: 2, fillColor, fillOpacity: 0.38 };
+    return { color, weight: 2.2, fillColor, fillOpacity: 0.48 };
   }
 
   function buildPopupHTML(no) {
@@ -845,6 +943,7 @@
     document.querySelectorAll('.parcel-tag').forEach(el => {
       el.classList.toggle('selected', el.id === `tag-${selectedParcelNo}`);
     });
+    updateLegend();
   }
 
   function renderUI(zoomToFiltered = false) {
