@@ -1,0 +1,2 @@
+# tahsis
+ANKARA ANADOLU GERİ DÖNÜŞÜMCÜLERİ İHTİSAS OSB'NİN TAHSİS SÜRECİ TAKİBİ İÇİNDİR.
