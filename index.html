@@ -748,10 +748,38 @@
     return inside;
   }
 
-  // CSV YÜKLEME (UTF-8 ve ANSI Windows-1254 uyumlu)
+  // RFC-4180 Uyumlu CSV Satır Ayrıştırıcı (Tırnak içi virgülleri bozmaz)
+  function parseCSVLine(line, sep) {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === sep && !inQuotes) {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  // GOOGLE E-TABLOLAR CSV YÜKLEME (Canlı + Önbellek Kırıcı)
+  const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSztpGzI946MCMORPQE8zjO9op9tf338Hi1Q-o0Rlw2QK6CC7npZ9Sc9hS_38rwp_72sNOCsFdU-BBo/pub?gid=0&single=true&output=csv";
+
   async function loadCSV(url) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("CSV dosyası bulunamadı: " + url);
+    const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    const res = await fetch(cacheBustUrl, { cache: 'no-store' });
+    if (!res.ok) throw new Error("Google E-Tablo verisi alınamadı (HTTP " + res.status + ")");
     const buf = await res.arrayBuffer();
 
     let text = new TextDecoder('utf-8').decode(buf);
@@ -760,14 +788,14 @@
     }
 
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-    let headerIdx = lines.findIndex(l => l.toUpperCase().startsWith('NO;') || l.toUpperCase().startsWith('NO,'));
+    let headerIdx = lines.findIndex(l => /^"?NO"?[;,]/i.test(l));
     if (headerIdx === -1) headerIdx = 0;
 
     const sep = lines[headerIdx].includes(';') ? ';' : ',';
     const rows = [];
 
     for (let i = headerIdx + 1; i < lines.length; i++) {
-      const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''));
+      const cols = parseCSVLine(lines[i], sep);
       if (!cols[0]) continue;
       const no = cols[0].toUpperCase();
       const tipi = (cols[1] || '').toUpperCase();
@@ -1118,7 +1146,7 @@
   // BAŞLATMA
   async function init() {
     try {
-      allParcels = await loadCSV('tahsis_sozlesmesi.csv');
+      allParcels = await loadCSV(GOOGLE_SHEET_CSV_URL);
 
       // Filtre seçeneklerini doldur
       const selParsel = document.getElementById('fParsel');
@@ -1157,7 +1185,7 @@
 
     } catch (err) {
       document.getElementById('detailTableBody').innerHTML =
-        `<tr><td colspan="4" style="color:#dc2626; padding:18px;">Hata: ${err.message}<br><small>index.html, imar_plani.geojson ve tahsis_sozlesmesi.csv dosyalarının aynı klasörde olduğundan emin olun.</small></td></tr>`;
+        `<tr><td colspan="4" style="color:#dc2626; padding:18px;">Hata: ${err.message}<br><small>İnternet bağlantınızı ve Google E-Tablo paylaşım ayarlarını kontrol edin.</small></td></tr>`;
     }
   }
 
